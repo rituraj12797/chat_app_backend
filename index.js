@@ -6,6 +6,7 @@ const { setupMaster, setupWorker } = require("@socket.io/sticky");
 const { createAdapter, setupPrimary } = require("@socket.io/cluster-adapter");
 const { Server } = require("socket.io");
 const { info } = require('node:console');
+const cors = require("cors");
 const express = require("express");
 
 require('dotenv').config();
@@ -15,6 +16,8 @@ require('dotenv').config();
 // os -> to get the number of available cores
 // process -> to get the process id of the current process
 // sticky -> to create a sticky session for the socket.io server
+
+
 
 if (cluster.isPrimary) {
     console.log(`Primary is runnig on ${process.pid} `);
@@ -53,10 +56,26 @@ else {
     console.log(`Worker started and is runnig on ${process.pid}`);
     // worker process are the instances of the server that are spawned by the primary process to handle the incoming requests
     const app = express();
+    app.use(cors(
+        {
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Allow credentials
+}
+    ));
+
     // wrapping the express app with the http server
     const httpServer = http.createServer(app);
     // creating the socket.io server 
-    const io = new Server(httpServer)
+    const io = require("socket.io")(httpServer, {
+        cors: {
+            origin: "http://localhost:5173",
+            methods: ["GET", "POST"],
+            credentials: true // Allow credentials
+        }
+    })
+    // a separate cors need to be used for the socket.io server as the cors used for the http/express app will not work for the socket.io server
 
     {/* Imagine you're running a pizza delivery service called "PizzaHub" and you want to scale up your operations because you're getting more orders. You decide to open multiple branches across the city to handle the increasing demand efficiently.
 
@@ -85,14 +104,19 @@ Similarly, in Socket.IO, when a client sends a message or performs an action, th
    // the diffeence between io.adapter(createAdapter()) and setupWorker(io) is that the former is used to create the adapter for the socket.io server and the latter is used to setup the worker to use the sticky session for the socket.io server
 
    io.on("connection", (socket) => {
+    socket.emit("message", "Hello from the server");
     // Handling socket connections.
     console.log(`User connected to ${process.pid}`);
     socket.on("message", (data) => {
         console.log(`Message arrived at ${process.pid} and data is ${data}`);
-
-        io.broadcast.emit("message", "Hello from the server"); // this is used to broadcast a message to all the clients connected to the server including the client which send the message 
+        io.emit("message", data);
     });
-
+   
+    io.on("disconnect", () => {
+       socket.on("disconnect", () => {
+        console.log(`User disconnected from ${process.pid}`);
+       });
+    })
     
     //  socket.emit is used to emit a message to the client who has sent the request now with 1st agr as the event name and 2nd arg as the data to be sent 
 
@@ -103,9 +127,15 @@ Similarly, in Socket.IO, when a client sends a message or performs an action, th
    });
 
 
+   var corsOptions = {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    optionsSuccessStatus: 200 
+  }
+  
+  app.use(cors(corsOptions));
 
-
-    app.get("/", (req, res) => {
+    app.get("/",(req, res) => {
         res.json({ message: `Worker started and is runnig on ${process.pid}` });
     });
 
