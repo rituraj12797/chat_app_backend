@@ -48,7 +48,7 @@ if (cluster.isPrimary) {
         console.log("worker " + worker.process.pid + " is online");
     })
     httpServer.listen(process.env.PORT, () => {
-        console.log("Server is running on port ",process.env.PORT);
+        console.log("Server is running on port ", process.env.PORT);
     })
 }
 
@@ -58,11 +58,11 @@ else {
     const app = express();
     app.use(cors(
         {
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Allow credentials
-}
+            origin: 'http://localhost:5173',
+            methods: ['GET', 'POST'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
+            credentials: true // Allow credentials
+        }
     ));
 
     // wrapping the express app with the http server
@@ -75,6 +75,10 @@ else {
             credentials: true // Allow credentials
         }
     })
+
+    // io is a server side object that is responsible for managing all server side 1. event listeners ,2. derver side emitters and 3. managing connection with clients.
+
+
     // a separate cors need to be used for the socket.io server as the cors used for the http/express app will not work for the socket.io server
 
     {/* Imagine you're running a pizza delivery service called "PizzaHub" and you want to scale up your operations because you're getting more orders. You decide to open multiple branches across the city to handle the increasing demand efficiently.
@@ -97,45 +101,41 @@ Real-time Interactions:
 
 Now, let's say a customer places an order for a pizza. The central dispatch system receives the order and assigns it to the nearest branch for delivery.
 Similarly, in Socket.IO, when a client sends a message or performs an action, the clustering adapter ensures that the message is correctly delivered to the appropriate server instance, allowing real-time interactions to occur seamlessly across the cluster. */}
-   
-   io.adapter(createAdapter());   
-   setupWorker(io); // this is used to setup the worker to use the sticky session for the socket.io server
 
-   // the diffeence between io.adapter(createAdapter()) and setupWorker(io) is that the former is used to create the adapter for the socket.io server and the latter is used to setup the worker to use the sticky session for the socket.io server
+    io.adapter(createAdapter());
+    setupWorker(io); // this is used to setup the worker to use the sticky session for the socket.io server
 
-   io.on("connection", (socket) => {
-    socket.emit("message", "Hello from the server");
-    // Handling socket connections.
-    console.log(`User connected to ${process.pid}`);
-    socket.on("message", (data) => {
-        console.log(`Message arrived at ${process.pid} and data is ${data}`);
-        io.emit("message", data);
+    // the diffeence between io.adapter(createAdapter()) and setupWorker(io) is that the former is used to create the adapter for the socket.io server and the latter is used to setup the worker to use the sticky session for the socket.io server
+
+    io.on("connection", (socket) => {
+        // 1. when user is conencted we transmit a message to a user 
+        socket.emit("message", "connected to process number " + process.pid);
+
+        socket.on("message", (data) => {
+            socket.emit("message", "this is a message from the server once " + data + " " + process.pid);
+        })
+        // 2 when a message arrives at server from the client 
+
+        
+        //  socket.emit is used to emit a message to the client who has sent the request now with 1st agr as the event name and 2nd arg as the data to be sent 
+
+        //  socket.emit("message", "Hello from the server"); // this is used to emit a message to the client who has sent the request now 
+
+        // socket.broadcast.emit("message", "Hello from the server"); // this is used to broadcast a message to all the clients connected to the server except the client which send the message
     });
-   
-    io.on("disconnect", () => {
-       socket.on("disconnect", () => {
-        console.log(`User disconnected from ${process.pid}`);
-       });
-    })
-    
-    //  socket.emit is used to emit a message to the client who has sent the request now with 1st agr as the event name and 2nd arg as the data to be sent 
-
-   //  socket.emit("message", "Hello from the server"); // this is used to emit a message to the client who has sent the request now 
 
 
-   // socket.broadcast.emit("message", "Hello from the server"); // this is used to broadcast a message to all the clients connected to the server except the client which send the message
-   });
 
 
-   var corsOptions = {
-    origin: '*',
-    methods: ['GET', 'POST'],
-    optionsSuccessStatus: 200 
-  }
-  
-  app.use(cors(corsOptions));
+    var corsOptions = {
+        origin: '*',
+        methods: ['GET', 'POST'],
+        optionsSuccessStatus: 200
+    }
 
-    app.get("/",(req, res) => {
+    app.use(cors(corsOptions));
+
+    app.get("/", (req, res) => {
         res.json({ message: `Worker started and is runnig on ${process.pid}` });
     });
 
