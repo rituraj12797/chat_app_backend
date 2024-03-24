@@ -25,8 +25,14 @@ if (cluster.isPrimary) {
     const httpServer = http.createServer();  // this create a http server 
 
     setupMaster(httpServer, {
-        loadBalancingMethod: "random" // this works by distributing the incoming requests to the worker with the least number of active connections
+        loadBalancingMethod: "round-robin" // this works by distributing the incoming requests to the worker with the least number of active connections
     });
+
+    setupPrimary();
+    cluster.setupPrimary({
+        serialization: "advanced"
+    });
+    // setup primary is used to setting up connection between workers 
 
     // spawning the workers
     for (let i = 0; i < numCPUs; i++) {
@@ -111,18 +117,26 @@ Similarly, in Socket.IO, when a client sends a message or performs an action, th
         // 1. when user is conencted we transmit a message to a user 
         socket.emit("message", "connected to process number " + process.pid);
 
+        // 2 when a message arrives at server from the client with the event message the server send a message back to the client that it has received it 
         socket.on("message", (data) => {
             socket.emit("message", "this is a message from the server once " + data + " " + process.pid);
         })
-        // 2 when a message arrives at server from the client 
 
-        
+        // 3 socket broadcast is used to send a message to all the clients connected to the server except the client which send the message
+
+        socket.on("broadcast", (data) => {
+            socket.broadcast.emit("broadcast", "this message has been broadcasted by server " + data + " from process number " + process.pid)
+        }
+        )
+
+
         //  socket.emit is used to emit a message to the client who has sent the request now with 1st agr as the event name and 2nd arg as the data to be sent 
 
         //  socket.emit("message", "Hello from the server"); // this is used to emit a message to the client who has sent the request now 
 
         // socket.broadcast.emit("message", "Hello from the server"); // this is used to broadcast a message to all the clients connected to the server except the client which send the message
     });
+
 
 
 
