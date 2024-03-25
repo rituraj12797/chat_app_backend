@@ -119,11 +119,15 @@ Similarly, in Socket.IO, when a client sends a message or performs an action, th
 
         // 62.5x = 45*2500
       
-            socket.join(`room${(process.pid)}`);
+            socket.join(`room${(process.pid)}`); // connecting each client to a room with the name as the process room+id of the worker
         // 2 when a message arrives at server from the client with the event message the server send a message back to the client that it has received it 
         socket.on("message", (data) => {
             console.log(data.split(" ")[1])
+            // say i write "message_ths_to 12450" this message will be sent to "rooom12450" there it will be emitted
             socket.to(`room${data.split(" ")[1]}`).emit("message", "this is a message from the server once " + data + " " + process.pid);
+            // this method will transmit this message to all clients in this room except the client which send the message
+
+            // now to route this message to a prtcicularclient only 
         })
 
         // 3 socket broadcast is used to send a message to all the clients connected to the server except the client which send the message
