@@ -121,10 +121,20 @@ Similarly, in Socket.IO, when a client sends a message or performs an action, th
       
             socket.join(`room${(process.pid)}`); // connecting each client to a room with the name as the process room+id of the worker
         // 2 when a message arrives at server from the client with the event message the server send a message back to the client that it has received it 
-        socket.on("message", (data) => {
-            console.log(data.split(" ")[1])
-            // say i write "message_ths_to 12450" this message will be sent to "rooom12450" there it will be emitted
-            socket.to(`room${data.split(" ")[1]}`).emit("message", "this is a message from the server once " + data + " " + process.pid);
+        socket.on("message", ({text,type}) => {
+            
+            let socketId = text.split(" ")[1]
+            type = "server"
+            // say i write "message_ths_to 12450" this message will be sent to the client with socketid 12450 ( by some how searching globally for the client among all the workers ) directly without the need to search first for the room of receipient (figue out how is it working) ?
+
+
+            socket.to(`${socketId}`).emit("message", {text,type});
+            console.log("this line got executed")
+           
+        //    if(type==="server"){
+        //     console.log("this is executed when the message reach desired room ")
+        //     socket.to(`${socketId}`).emit("message", {text,type});
+        //    }
             // this method will transmit this message to all clients in this room except the client which send the message
 
             // now to route this message to a prtcicularclient only 
