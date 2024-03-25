@@ -115,11 +115,15 @@ Similarly, in Socket.IO, when a client sends a message or performs an action, th
 
     io.on("connection", (socket) => {
         // 1. when user is conencted we transmit a message to a user 
-        socket.emit("message", "connected to process number " + process.pid);
+        socket.emit("message", "connected to process number " + process.pid+ " with the socket id as "+socket.id);
 
+        // 62.5x = 45*2500
+      
+            socket.join(`room${(process.pid)}`);
         // 2 when a message arrives at server from the client with the event message the server send a message back to the client that it has received it 
         socket.on("message", (data) => {
-            socket.emit("message", "this is a message from the server once " + data + " " + process.pid);
+            console.log(data.split(" ")[1])
+            socket.to(`room${data.split(" ")[1]}`).emit("message", "this is a message from the server once " + data + " " + process.pid);
         })
 
         // 3 socket broadcast is used to send a message to all the clients connected to the server except the client which send the message
@@ -128,6 +132,8 @@ Similarly, in Socket.IO, when a client sends a message or performs an action, th
             socket.broadcast.emit("broadcast", "this message has been broadcasted by server " + data + " from process number " + process.pid)
         }
         )
+
+        // even if sockets are joined to room we can directly use broadcast to broadcast to all clients of all rooms 
 
 
         //  socket.emit is used to emit a message to the client who has sent the request now with 1st agr as the event name and 2nd arg as the data to be sent 
